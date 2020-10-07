@@ -11,7 +11,7 @@ ndf = utils.ndf
 
 ## Neural Net that provide probability that the input is real or not
 class Discriminator:
-    def __init__(name="discriminator"):
+    def __init__(self, name="discriminator"):
         self.name = name
     
     def __call__(self, inputdisc):

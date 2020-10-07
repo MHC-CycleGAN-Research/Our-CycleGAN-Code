@@ -5,15 +5,16 @@
 
 
 import tensorflow as tf
-import ops
+#import ops
 import utils
 
 ngf = utils.ngf
 
 ## Neural Nets that generate images
 class Generator:
-    def __init__(name="generator", skip=False):
+    def __init__(self, name, skip=False):
         self.name = name
+	self.skip = skip
 
     def __call__(self, inputgen):
         with tf.variable_scope(self.name):
@@ -50,7 +51,7 @@ class Generator:
                                      0.02, "SAME", "c6",
                                      do_norm=False, do_relu=False)
 
-            if skip is True:
+            if self.skip is True:
                 out_gen = tf.nn.tanh(inputgen + o_c6, "t1")
             else:
                 out_gen = tf.nn.tanh(o_c6, "t1")
