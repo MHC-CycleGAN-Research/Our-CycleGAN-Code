@@ -16,12 +16,13 @@ import cyclegan_datasets
 import discriminator
 import generator
 import data_loader, loss
+from datetime import datetime
 
 class CycleGAN:
     def __init__(self, 
                  pool_size,
-                 lambda1=10,
-                 lambda2=10,
+                 lambda1, # sugegsted value: 10
+                 lambda2, # suggested value: 10
                  output_root_dir,
                  to_restore,
                  _base_lr,
@@ -34,7 +35,8 @@ class CycleGAN:
         
         self._pool_size = pool_size
         self._size_before_crop = 286
-        
+
+        current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
         self._output_dir = os.path.join(output_root_dir, current_time)
         self._images_dir = os.path.join(self._output_dir, 'imgs')
         
@@ -44,7 +46,6 @@ class CycleGAN:
         self._num_imgs_to_save = 20
         self._to_restore = to_restore
         
-        self._network_version = network_version
         self._dataset_name = dataset_name
         self._checkpoint_dir = checkpoint_dir
         self._do_flipping = do_flipping
@@ -68,16 +69,16 @@ class CycleGAN:
         self.input_x = tf.placeholder(
             tf.float32, shape=[
                 1,
-                model.IMG_HEIGHT,
-                model.IMG_WIDTH,
-                model.IMG_CHANNELS
+                utils.IMG_HEIGHT,
+                utils.IMG_WIDTH,
+                utils.IMG_CHANNELS
             ], name="input_X")
         self.input_y = tf.placeholder(
             tf.float32, shape=[
                 1,
-                model.IMG_HEIGHT,
-                model.IMG_WIDTH,
-                model.IMG_CHANNELS
+                utils.IMG_HEIGHT,
+                utils.IMG_WIDTH,
+                utils.IMG_CHANNELS
             ], name="input_Y")
                        
         ## Define a placeholder fed with fake x/fake y
@@ -106,25 +107,25 @@ class CycleGAN:
         self.images_x = self.input_x
         self.images_y = self.input_y
         
-        self.G = generator.Generator(name="G_X", skip=skip)
-        self.F = generator.Generator(name="G_Y", skip=skip)
+        self.G = generator.Generator("G_X", skip=self._skip)
+        self.F = generator.Generator("G_Y", skip=self._skip)
         self.D_X = discriminator.Discriminator('D_X')
         self.D_Y = discriminator.Discriminator('D_Y')
 
-        self.prob_real_x_is_real = self.D(images_x)
-        self.prob_real_y_is_real = self.D(images_y)
+        self.prob_real_x_is_real = self.D_X(self.images_x)
+        self.prob_real_y_is_real = self.D_Y(self.images_y)
         
-        self.fake_images_y = self.G(images_x)
-        self.fake_images_x = self.F(images_y)
+        self.fake_images_y = self.G(self.images_x)
+        self.fake_images_x = self.F(self.images_y)
             
-        self.prob_fake_x_is_real = self.D_X(fake_x)
-        self.prob_fake_y_is_real = self.D_Y(fake_y)
+        self.prob_fake_x_is_real = self.D_X(self.fake_images_x)
+        self.prob_fake_y_is_real = self.D_Y(self.fake_images_y)
 
-        self.cycle_images_x = self.G(fake_y, skip=skip)
-        self.cycle_images_y = self.F(fake_x, skip=skip)
+        self.cycle_images_x = self.G(self.fake_images_y, skip=self._skip)
+        self.cycle_images_y = self.F(self.fake_images_x, skip=self._skip)
 
-        self.prob_fake_pool_x_is_real = self.D(self.fake_pool_x)
-        self.prob_fake_pool_y_is_real = self.D(self.fake_pool_y)
+        self.prob_fake_pool_x_is_real = self.D_X(self.fake_pool_x)
+        self.prob_fake_pool_y_is_real = self.D_Y(self.fake_pool_y)
         
         
     def compute_losses(self):    
@@ -167,7 +168,7 @@ class CycleGAN:
 
         
     def save_images(self, sess, epoch):
-         """
+        """
         Saves input and output images.
         :param sess: The session.
         :param epoch: Currnt epoch.

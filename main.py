@@ -5,10 +5,11 @@
 
 
 import os
+import sys
 import json
 import model
 
-def main(to_train, log_dir, config_filename, checkpoint_dir, skip):
+def main(to_train=1, log_dir="./output/cyclegan/exp_01", config_filename="./configs/exp_01.json", checkpoint_dir="./output/cyclegan/checkpoint_01", skip=False):
     """
     :param to_train: Specify whether it is training or testing. 1: training; 2:
      resuming from latest checkpoint; 0: testing.
@@ -38,7 +39,7 @@ def main(to_train, log_dir, config_filename, checkpoint_dir, skip):
     do_flipping = bool(config['do_flipping'])
 
     cyclegan_model = model.CycleGAN(pool_size, lambda_a, lambda_b, log_dir,
-                              to_restore, base_lr, max_step, network_version,
+                              to_restore, base_lr, max_step,
                               dataset_name, checkpoint_dir, do_flipping, skip)
 
     if to_train > 0:
