@@ -4,6 +4,7 @@
 # In[5]:
 
 
+
 import tensorflow as tf
 import json
 import numpy as np
@@ -111,21 +112,27 @@ class CycleGAN:
         self.F = generator.Generator("G_Y", skip=self._skip)
         self.D_X = discriminator.Discriminator('D_X')
         self.D_Y = discriminator.Discriminator('D_Y')
-
-        self.prob_real_x_is_real = self.D_X(self.images_x)
-        self.prob_real_y_is_real = self.D_Y(self.images_y)
         
-        self.fake_images_y = self.G(self.images_x)
-        self.fake_images_x = self.F(self.images_y)
+        with tf.variable_scope("Model") as scope:
+
+            self.prob_real_x_is_real = self.D_X(self.images_x)
+            self.prob_real_y_is_real = self.D_Y(self.images_y)
+        
+            self.fake_images_y = self.G(self.images_x)
+            self.fake_images_x = self.F(self.images_y)
             
-        self.prob_fake_x_is_real = self.D_X(self.fake_images_x)
-        self.prob_fake_y_is_real = self.D_Y(self.fake_images_y)
+            scope.reuse_variables()
+            
+            self.prob_fake_x_is_real = self.D_X(self.fake_images_x)
+            self.prob_fake_y_is_real = self.D_Y(self.fake_images_y)
 
-        self.cycle_images_x = self.G(self.fake_images_y, skip=self._skip)
-        self.cycle_images_y = self.F(self.fake_images_x, skip=self._skip)
+            self.cycle_images_x = self.G(self.fake_images_y)
+            self.cycle_images_y = self.F(self.fake_images_x)
+            
+            scope.reuse_variables()
 
-        self.prob_fake_pool_x_is_real = self.D_X(self.fake_pool_x)
-        self.prob_fake_pool_y_is_real = self.D_Y(self.fake_pool_y)
+            self.prob_fake_pool_x_is_real = self.D_X(self.fake_pool_x)
+            self.prob_fake_pool_y_is_real = self.D_Y(self.fake_pool_y)
         
         
     def compute_losses(self):    
