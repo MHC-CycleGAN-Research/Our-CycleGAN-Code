@@ -4,6 +4,7 @@
 # In[5]:
 
 
+
 import tensorflow as tf
 import json
 import numpy as np
@@ -54,7 +55,7 @@ class CycleGAN:
         ## Define the hyperparameters
         self.lambda1 = lambda1
         self.lambda2 = lambda2
-        
+        self.beta1 = 0.5
         
         self.fake_x_image = np.zeros(
             (self._pool_size, 1, utils.IMG_HEIGHT, utils.IMG_WIDTH,
@@ -111,21 +112,27 @@ class CycleGAN:
         self.F = generator.Generator("G_Y", skip=self._skip)
         self.D_X = discriminator.Discriminator('D_X')
         self.D_Y = discriminator.Discriminator('D_Y')
-
-        self.prob_real_x_is_real = self.D_X(self.images_x)
-        self.prob_real_y_is_real = self.D_Y(self.images_y)
         
-        self.fake_images_y = self.G(self.images_x)
-        self.fake_images_x = self.F(self.images_y)
+        with tf.variable_scope("Model") as scope:
+
+            self.prob_real_x_is_real = self.D_X(self.images_x)
+            self.prob_real_y_is_real = self.D_Y(self.images_y)
+        
+            self.fake_images_y = self.G(self.images_x)
+            self.fake_images_x = self.F(self.images_y)
             
-        self.prob_fake_x_is_real = self.D_X(self.fake_images_x)
-        self.prob_fake_y_is_real = self.D_Y(self.fake_images_y)
+            scope.reuse_variables()
+            
+            self.prob_fake_x_is_real = self.D_X(self.fake_images_x)
+            self.prob_fake_y_is_real = self.D_Y(self.fake_images_y)
 
-        self.cycle_images_x = self.G(self.fake_images_y, skip=self._skip)
-        self.cycle_images_y = self.F(self.fake_images_x, skip=self._skip)
+            self.cycle_images_x = self.G(self.fake_images_y)
+            self.cycle_images_y = self.F(self.fake_images_x)
+            
+            scope.reuse_variables()
 
-        self.prob_fake_pool_x_is_real = self.D_X(self.fake_pool_x)
-        self.prob_fake_pool_y_is_real = self.D_Y(self.fake_pool_y)
+            self.prob_fake_pool_x_is_real = self.D_X(self.fake_pool_x)
+            self.prob_fake_pool_y_is_real = self.D_Y(self.fake_pool_y)
         
         
     def compute_losses(self):    
@@ -139,7 +146,7 @@ class CycleGAN:
         G_loss = G_cycle_loss + F_cycle_loss + F_gan_loss
         F_loss = F_cycle_loss + G_cycle_loss + G_gan_loss
             
-        D_Y_loss = loss.loss_discriminator(self.prob_real_x_is_real, self.prob_fake_pool_x_is_real)
+        D_X_loss = loss.loss_discriminator(self.prob_real_x_is_real, self.prob_fake_pool_x_is_real)
         D_Y_loss = loss.loss_discriminator(self.prob_real_y_is_real, self.prob_fake_pool_y_is_real)
         
         
@@ -161,10 +168,10 @@ class CycleGAN:
             print(var.name)
             
         # Summary variables for tensorboard
-        self.g_A_loss_summ = tf.summary.scalar("g_A_loss", g_loss_A)
-        self.g_B_loss_summ = tf.summary.scalar("g_B_loss", g_loss_B)
-        self.d_A_loss_summ = tf.summary.scalar("d_A_loss", d_loss_A)
-        self.d_B_loss_summ = tf.summary.scalar("d_B_loss", d_loss_B)
+        self.G_loss_summ = tf.summary.scalar("G_loss", G_loss)
+        self.F_loss_summ = tf.summary.scalar("F_loss", F_loss)
+        self.D_X_loss_summ = tf.summary.scalar("D_X_loss", D_X_loss)
+        self.D_Y_loss_summ = tf.summary.scalar("D_Y_loss", D_Y_loss)
 
         
     def save_images(self, sess, epoch):
