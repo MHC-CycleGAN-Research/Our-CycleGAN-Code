@@ -57,14 +57,15 @@ class CycleGAN:
         self.lambda2 = lambda2
         self.beta1 = 0.5
         
-        self.fake_x_image = np.zeros(
+        self.fake_images_X = np.zeros(
             (self._pool_size, 1, utils.IMG_HEIGHT, utils.IMG_WIDTH,
              utils.IMG_CHANNELS)
         )
-        self.fake_y_image = np.zeros(
+        self.fake_images_Y = np.zeros(
             (self._pool_size, 1, utils.IMG_HEIGHT, utils.IMG_WIDTH,
              utils.IMG_CHANNELS)
         )
+
         
     def model(self):
         self.input_x = tf.placeholder(
@@ -83,21 +84,21 @@ class CycleGAN:
             ], name="input_Y")
                        
         ## Define a placeholder fed with fake x/fake y
-        self.fake_pool_x = tf.placeholder(
+        self.fake_pool_X = tf.placeholder(
             tf.float32, shape=[
                 None,
                 utils.IMG_HEIGHT,
                 utils.IMG_WIDTH,
                 utils.IMG_CHANNELS
-            ], name="fake_pool_A")
+            ], name="fake_pool_X")
         
-        self.fake_pool_y = tf.placeholder(
+        self.fake_pool_Y = tf.placeholder(
             tf.float32, shape=[
                 None,
                 utils.IMG_HEIGHT,
                 utils.IMG_WIDTH,
                 utils.IMG_CHANNELS
-            ], name="fake_pool_B")
+            ], name="fake_pool_Y")
         
         self.global_step = tf.Variable(1, name="global_step")
 
@@ -131,8 +132,8 @@ class CycleGAN:
             
             scope.reuse_variables()
 
-            self.prob_fake_pool_x_is_real = self.D_X(self.fake_pool_x)
-            self.prob_fake_pool_y_is_real = self.D_Y(self.fake_pool_y)
+            self.prob_fake_pool_x_is_real = self.D_X(self.fake_pool_X)
+            self.prob_fake_pool_y_is_real = self.D_Y(self.fake_pool_Y)
         
         
     def compute_losses(self):    
@@ -159,17 +160,17 @@ class CycleGAN:
         d_Y_vars = [var for var in self.model_vars if 'D_Y' in var.name]
         g_Y_vars = [var for var in self.model_vars if 'G_Y' in var.name]
 
-        self.d_X_trainer = optimizer.minimize(D_X_loss, var_list=d_X_vars)
-        self.d_X_trainer = optimizer.minimize(D_Y_loss, var_list=d_Y_vars)
-        self.g_Y_trainer = optimizer.minimize(G_loss, var_list=g_X_vars)
-        self.g_Y_trainer = optimizer.minimize(F_loss, var_list=g_Y_vars)
+        self.D_X_trainer = optimizer.minimize(D_X_loss, var_list=d_X_vars)
+        self.D_Y_trainer = optimizer.minimize(D_Y_loss, var_list=d_Y_vars)
+        self.G_X_trainer = optimizer.minimize(G_loss, var_list=g_X_vars)
+        self.G_Y_trainer = optimizer.minimize(F_loss, var_list=g_Y_vars)
         
         for var in self.model_vars:
             print(var.name)
             
         # Summary variables for tensorboard
-        self.G_loss_summ = tf.summary.scalar("G_loss", G_loss)
-        self.F_loss_summ = tf.summary.scalar("F_loss", F_loss)
+        self.G_X_loss_summ = tf.summary.scalar("G_loss", G_loss)
+        self.G_Y_loss_summ = tf.summary.scalar("F_loss", F_loss)
         self.D_X_loss_summ = tf.summary.scalar("D_X_loss", D_X_loss)
         self.D_Y_loss_summ = tf.summary.scalar("D_Y_loss", D_Y_loss)
 
@@ -333,7 +334,7 @@ class CycleGAN:
                     writer.add_summary(summary_str, epoch * max_images + i)
 
                     fake_X_temp1 = self.fake_image_pool(
-                        self.num_fake_inputs, fake_X_temp, self.fake_images_x)
+                        self.num_fake_inputs, fake_X_temp, self.fake_images_X)
 
                     # Optimizing the D_X network
                     _, summary_str = sess.run(

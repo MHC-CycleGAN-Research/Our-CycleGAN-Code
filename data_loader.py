@@ -73,11 +73,10 @@ def load_data(dataset_name, image_size_before_crop,
     # Batch
     if do_shuffle is True:
         images_i, images_j = tf.train.shuffle_batch(
-            [image_i, image_j], 1, 5000, 100)
+           [image_i, image_j], 1, 5000, 100)
     else:
         images_i, images_j = tf.train.batch(
-            [image_i, image_j], 1)
-
+           [image_i, image_j], 1)
     inputs = {
         'images_i': images_i,
         'images_j': images_j
