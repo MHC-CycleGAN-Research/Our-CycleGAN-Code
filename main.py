@@ -9,7 +9,29 @@ import sys
 import json
 import model
 
-def main(to_train=1, log_dir="./output/cyclegan/exp_01", config_filename="./configs/exp_01.json", checkpoint_dir="./output/cyclegan/checkpoint_01", skip=False):
+@click.command()
+@click.option('--to_train',
+              type=click.INT,
+              default=1,
+              help='1=training; 2=resuming from latest checkpoint; 0=testing.')
+@click.option('--log_dir',
+              type=click.STRING,
+              default='./output/cyclegan/exp_01',
+              help='The path to save the training log.')
+@click.option('--config_filename',
+              type=click.STRING,
+              default='./configs/exp_01.json',
+              help='The path to the dataset configuration file.')
+@click.option('--checkpoint_dir',
+              type=click.STRING,
+              default='./output/cyclegan/checkpoint_01',
+              help='The path to save model checkpoints.')
+@click.option('--skip',
+              type=click.BOOL,
+              default=False,
+              help='Whether to skip a few nodes during training.')
+
+def main(to_train, log_dir, config_filename, checkpoint_dir, skip):
     """
     :param to_train: Specify whether it is training or testing. 1: training; 2:
      resuming from latest checkpoint; 0: testing.
