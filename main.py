@@ -9,6 +9,8 @@ import sys
 import json
 import model
 
+import click
+
 @click.command()
 @click.option('--to_train',
               type=click.INT,
