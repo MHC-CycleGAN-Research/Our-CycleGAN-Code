@@ -14,7 +14,7 @@ import click
 @click.command()
 @click.option('--to_train',
               type=click.INT,
-              default=1,
+              default=0,
               help='1=training; 2=resuming from latest checkpoint; 0=testing.')
 @click.option('--log_dir',
               type=click.STRING,
@@ -26,7 +26,7 @@ import click
               help='The path to the dataset configuration file.')
 @click.option('--checkpoint_dir',
               type=click.STRING,
-              default='./output/cyclegan/checkpoint_01',
+              default='./output/cyclegan/exp_01/20201012-175320',
               help='The path to save model checkpoints.')
 @click.option('--skip',
               type=click.BOOL,

@@ -367,14 +367,15 @@ class CycleGAN:
             self._dataset_name, self._size_before_crop,
             False, self._do_flipping)
 
-        self.model_setup()
+        self.model()
         saver = tf.train.Saver()
         init = tf.global_variables_initializer()
 
         with tf.Session() as sess:
             sess.run(init)
-
+            print(self._checkpoint_dir)
             chkpt_fname = tf.train.latest_checkpoint(self._checkpoint_dir)
+            print(chkpt_fname)
             saver.restore(sess, chkpt_fname)
 
             coord = tf.train.Coordinator()
