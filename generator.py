@@ -3,8 +3,9 @@
 
 # In[ ]:
 
-
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+#import tensorflow as tf
 #import ops
 import utils
 
@@ -14,7 +15,7 @@ ngf = utils.ngf
 class Generator:
     def __init__(self, name, skip=False):
         self.name = name
-	self.skip = skip
+        self.skip = skip
 
     def __call__(self, inputgen):
         with tf.variable_scope(self.name):

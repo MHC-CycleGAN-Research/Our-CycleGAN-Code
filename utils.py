@@ -3,8 +3,9 @@
 
 # In[ ]:
 
-
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+#import tensorflow as tf
 
 
 # The number of samples per batch.
@@ -50,13 +51,13 @@ def general_conv2d(inputconv, o_d=64, f_h=7, f_w=7, s_h=1, s_w=1, stddev=0.02,
                    relufactor=0):
     with tf.variable_scope(name):
 
-        conv = tf.contrib.layers.conv2d(
+        conv = tf.layers.conv2d( #tf.contrib.layers.conv2d(
             inputconv, o_d, f_w, s_w, padding,
-            activation_fn=None,
-            weights_initializer=tf.truncated_normal_initializer(
+            activation=None,
+            kernel_initializer=tf.truncated_normal_initializer(
                 stddev=stddev
             ),
-            biases_initializer=tf.constant_initializer(0.0)
+            bias_initializer=tf.constant_initializer(0.0)
         )
         if do_norm:
             conv = instance_norm(conv)
@@ -75,12 +76,12 @@ def general_deconv2d(inputconv, outshape, o_d=64, f_h=7, f_w=7, s_h=1, s_w=1,
                      do_norm=True, do_relu=True, relufactor=0):
     with tf.variable_scope(name):
 
-        conv = tf.contrib.layers.conv2d_transpose(
+        conv = tf.layers.conv2d_transpose(
             inputconv, o_d, [f_h, f_w],
             [s_h, s_w], padding,
-            activation_fn=None,
-            weights_initializer=tf.truncated_normal_initializer(stddev=stddev),
-            biases_initializer=tf.constant_initializer(0.0)
+            activation=None,
+            kernel_initializer=tf.truncated_normal_initializer(stddev=stddev),
+            bias_initializer=tf.constant_initializer(0.0)
         )
 
         if do_norm:

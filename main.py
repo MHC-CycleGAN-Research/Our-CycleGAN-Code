@@ -14,7 +14,7 @@ import click
 @click.command()
 @click.option('--to_train',
               type=click.INT,
-              default=0,
+              default=1,
               help='1=training; 2=resuming from latest checkpoint; 0=testing.')
 @click.option('--log_dir',
               type=click.STRING,

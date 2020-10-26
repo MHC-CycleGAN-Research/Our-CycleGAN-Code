@@ -4,20 +4,23 @@
 # In[5]:
 
 
-
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+#import tensorflow as tf
 import json
 import numpy as np
 import os
 import random
 import click
-from scipy.misc import imsave
 import utils
 import cyclegan_datasets
 import discriminator
 import generator
 import data_loader, loss
 from datetime import datetime
+import imageio
+
+
 
 class CycleGAN:
     def __init__(self, 
@@ -207,7 +210,7 @@ class CycleGAN:
 
                 for name, tensor in zip(names, tensors):
                     image_name = name + str(epoch) + "_" + str(i) + ".jpg"
-                    imsave(os.path.join(self._images_dir, image_name),
+                    imageio.imwrite(os.path.join(self._images_dir, image_name),
                            ((tensor[0] + 1) * 127.5).astype(np.uint8))
                     v_html.write(
                         "<img src=\"" +
