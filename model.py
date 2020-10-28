@@ -112,8 +112,8 @@ class CycleGAN:
         self.images_x = self.input_x
         self.images_y = self.input_y
         
-        self.G = generator.Generator("G_X", skip=self._skip)
-        self.F = generator.Generator("G_Y", skip=self._skip)
+        self.G_X = generator.Generator("G_X", skip=self._skip)
+        self.G_Y = generator.Generator("G_Y", skip=self._skip)
         self.D_X = discriminator.Discriminator('D_X')
         self.D_Y = discriminator.Discriminator('D_Y')
         
@@ -122,16 +122,16 @@ class CycleGAN:
             self.prob_real_x_is_real = self.D_X(self.images_x)
             self.prob_real_y_is_real = self.D_Y(self.images_y)
         
-            self.fake_images_y = self.G(self.images_x)
-            self.fake_images_x = self.F(self.images_y)
+            self.fake_images_y = self.G_X(self.images_x)
+            self.fake_images_x = self.G_Y(self.images_y)
             
             scope.reuse_variables()
             
             self.prob_fake_x_is_real = self.D_X(self.fake_images_x)
             self.prob_fake_y_is_real = self.D_Y(self.fake_images_y)
 
-            self.cycle_images_x = self.G(self.fake_images_y)
-            self.cycle_images_y = self.F(self.fake_images_x)
+            self.cycle_images_y = self.G_X(self.fake_images_x)
+            self.cycle_images_x = self.G_Y(self.fake_images_y)
             
             scope.reuse_variables()
 
@@ -141,17 +141,17 @@ class CycleGAN:
         
     def compute_losses(self):    
         
-        G_cycle_loss = self.lambda1 * loss.cycle_consistency_loss(self.input_x, self.cycle_images_x)
-        F_cycle_loss = self.lambda2 * loss.cycle_consistency_loss(self.input_y, self.cycle_images_y)
+        X_cycle_loss = self.lambda1 * loss.cycle_consistency_loss(self.input_x, self.cycle_images_x)
+        Y_cycle_loss = self.lambda2 * loss.cycle_consistency_loss(self.input_y, self.cycle_images_y)
         
-        G_gan_loss = loss.loss_generator(self.prob_fake_x_is_real)
-        F_gan_loss = loss.loss_generator(self.prob_fake_y_is_real)
+        G_Y_gan_loss = loss.generator_loss(self.prob_fake_x_is_real)
+        G_X_gan_loss = loss.generator_loss(self.prob_fake_y_is_real)
         
-        G_loss = G_cycle_loss + F_cycle_loss + F_gan_loss
-        F_loss = F_cycle_loss + G_cycle_loss + G_gan_loss
+        G_X_loss = X_cycle_loss + Y_cycle_loss + G_X_gan_loss
+        G_Y_loss = Y_cycle_loss + X_cycle_loss + G_Y_gan_loss
             
-        D_X_loss = loss.loss_discriminator(self.prob_real_x_is_real, self.prob_fake_pool_x_is_real)
-        D_Y_loss = loss.loss_discriminator(self.prob_real_y_is_real, self.prob_fake_pool_y_is_real)
+        D_X_loss = loss.discriminator_loss(self.prob_real_x_is_real, self.prob_fake_pool_x_is_real)
+        D_Y_loss = loss.discriminator_loss(self.prob_real_y_is_real, self.prob_fake_pool_y_is_real)
         
         
         optimizer = tf.train.AdamOptimizer(self.learning_rate, self.beta1)
@@ -165,15 +165,15 @@ class CycleGAN:
 
         self.D_X_trainer = optimizer.minimize(D_X_loss, var_list=d_X_vars)
         self.D_Y_trainer = optimizer.minimize(D_Y_loss, var_list=d_Y_vars)
-        self.G_X_trainer = optimizer.minimize(G_loss, var_list=g_X_vars)
-        self.G_Y_trainer = optimizer.minimize(F_loss, var_list=g_Y_vars)
+        self.G_X_trainer = optimizer.minimize(G_X_loss, var_list=g_X_vars)
+        self.G_Y_trainer = optimizer.minimize(G_Y_loss, var_list=g_Y_vars)
         
         for var in self.model_vars:
             print(var.name)
             
         # Summary variables for tensorboard
-        self.G_X_loss_summ = tf.summary.scalar("G_loss", G_loss)
-        self.G_Y_loss_summ = tf.summary.scalar("F_loss", F_loss)
+        self.G_X_loss_summ = tf.summary.scalar("G_X_loss", G_X_loss)
+        self.G_Y_loss_summ = tf.summary.scalar("G_Y_loss", G_Y_loss)
         self.D_X_loss_summ = tf.summary.scalar("D_X_loss", D_X_loss)
         self.D_Y_loss_summ = tf.summary.scalar("D_Y_loss", D_Y_loss)
 
@@ -391,8 +391,6 @@ class CycleGAN:
             coord.request_stop()
             coord.join(threads)
 
-
-# In[ ]:
 
 
 
