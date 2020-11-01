@@ -13,7 +13,7 @@ https://drive.google.com/drive/folders/1nO7h8bEnPhuSS-EzQ7g2zBK6NIajmIpE?usp=sha
 `python create_cyclegan_dataset.py`
 
 ### Command to train the model:
-`python2 -m main --to_train=1`
+`python -m main --to_train=1`
 
 ### Command to test the model:
-`python2 -m main --to_train=0 --checkpoint_dir=/path-to-checkpoint-file`
+`python -m main --to_train=0 --checkpoint_dir=/path-to-checkpoint-file`
