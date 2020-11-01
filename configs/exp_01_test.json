@@ -1,6 +1,6 @@
 {
   "description": "Testing with trained model.",
-  "network_version": "pytorch",
+  "network_version": "tensorflow",
   "dataset_name": "day2night_test",
   "do_flipping": 0
 }

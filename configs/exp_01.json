@@ -1,10 +1,10 @@
 {
-  "description": "The official PyTorch version of CycleGAN.", 
-  "pool_size": 10,
+  "description": "The official Tensorflow version of CycleGAN.", 
+  "pool_size": 200,
   "base_lr":0.0002,
   "max_step": 200,
   "network_version": "pytorch",
-  "dataset_name": "day2night_train",
+  "dataset_name": "fake2real_train",
   "do_flipping": 1,
   "_LAMBDA_A": 10,
   "_LAMBDA_B": 10
