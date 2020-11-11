@@ -61,10 +61,12 @@ def main(to_train, log_dir, config_filename, checkpoint_dir, skip):
     network_version = str(config['network_version'])
     dataset_name = str(config['dataset_name'])
     do_flipping = bool(config['do_flipping'])
+    do_ccropping = bool(config['do_ccropping'])
+    do_rcropping = bool(config['do_rcropping'])
 
     cyclegan_model = model.CycleGAN(pool_size, lambda_a, lambda_b, log_dir,
                               to_restore, base_lr, max_step,
-                              dataset_name, checkpoint_dir, do_flipping, skip)
+                              dataset_name, checkpoint_dir, do_flipping, do_ccropping, do_rcropping, skip)
 
     if to_train > 0:
         cyclegan_model.train()

@@ -6,6 +6,8 @@
   "network_version": "pytorch",
   "dataset_name": "fake2real_train",
   "do_flipping": 1,
+  "do_ccropping": 1,
+  "do_rcropping": 1,
   "_LAMBDA_A": 10,
   "_LAMBDA_B": 10
 }

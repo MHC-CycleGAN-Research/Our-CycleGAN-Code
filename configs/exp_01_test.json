@@ -2,5 +2,7 @@
   "description": "Testing with trained model.",
   "network_version": "tensorflow",
   "dataset_name": "day2night_test",
-  "do_flipping": 0
+  "do_flipping": 0,
+  "do_ccropping": 1,
+  "do_rcropping": 0
 }

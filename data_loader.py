@@ -21,6 +21,7 @@ def _load_samples(csv_name, image_type):
 
     file_contents_i = tf.read_file(filename_i)
     file_contents_j = tf.read_file(filename_j)
+
     if image_type == '.jpg':
         image_decoded_A = tf.image.decode_jpeg(
             file_contents_i, channels=utils.IMG_CHANNELS)
@@ -34,9 +35,35 @@ def _load_samples(csv_name, image_type):
 
     return image_decoded_A, image_decoded_B
 
+def largest_square_finder(image):
+    # find the largest square edge length in a black circle
+    h, w = image.shape[-3], image.shape[-2]
+
+    gray = tf.squeeze(tf.image.rgb_to_grayscale(image))
+    zeros = tf.zeros_like(gray)
+    mask = tf.greater(gray, zeros)
+    coordinates_pred = tf.cast(tf.where(mask), tf.float32)
+
+    xy_min = tf.reduce_min(coordinates_pred, axis=0)
+    xy_max = tf.reduce_max(coordinates_pred, axis=0)
+    diameter = tf.reduce_min(tf.subtract(xy_max,xy_min), axis=0)
+    square_edge =  tf.cast(tf.floordiv(diameter,tf.math.sqrt(2.0)),tf.int64)
+
+    return square_edge
+
+def crop_center(image, square_edge):
+    # crop the center part of the image defined by square edge
+    h, w = image.shape[-3], image.shape[-2]
+
+    cropped_image = tf.image.crop_to_bounding_box(image, 
+        (h-square_edge) // 2, (w-square_edge) // 2, square_edge, square_edge)
+    image = tf.image.resize_images(cropped_image, [h, w])
+
+    return image
+
 
 def load_data(dataset_name, image_size_before_crop,
-              do_shuffle=True, do_flipping=False):
+              do_shuffle=True, do_flipping=False, do_ccropping=False, do_rcropping=False):
     """
 
     :param dataset_name: The name of the dataset.
@@ -55,19 +82,22 @@ def load_data(dataset_name, image_size_before_crop,
         csv_name, cyclegan_datasets.DATASET_TO_IMAGETYPE[dataset_name])
 
     # Preprocessing:
-    image_i = tf.image.resize_images(
-        image_i, [image_size_before_crop, image_size_before_crop])
-    image_j = tf.image.resize_images(
-        image_j, [image_size_before_crop, image_size_before_crop])
+    image_i = tf.image.resize_images(image_i, [image_size_before_crop, image_size_before_crop])
+    image_j = tf.image.resize_images(image_j, [image_size_before_crop, image_size_before_crop])
+
+    if do_ccropping is True:
+        image_i = crop_center(image_i, largest_square_finder(image_i))
+        image_j = crop_center(image_j, largest_square_finder(image_j))
 
     if do_flipping is True:
         image_i = tf.image.random_flip_left_right(image_i)
         image_j = tf.image.random_flip_left_right(image_j)
 
-    image_i = tf.random_crop(
-        image_i, [utils.IMG_HEIGHT, utils.IMG_WIDTH, 3])
-    image_j = tf.random_crop(
-        image_j, [utils.IMG_HEIGHT, utils.IMG_WIDTH, 3])
+    if do_rcropping is True:
+        image_i = tf.random_crop(
+            image_i, [utils.IMG_HEIGHT, utils.IMG_WIDTH, 3])
+        image_j = tf.random_crop(
+            image_j, [utils.IMG_HEIGHT, utils.IMG_WIDTH, 3])
 
     image_i = tf.subtract(tf.div(image_i, 127.5), 1)
     image_j = tf.subtract(tf.div(image_j, 127.5), 1)

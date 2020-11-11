@@ -33,7 +33,9 @@ class CycleGAN:
                  max_step, 
                  dataset_name, 
                  checkpoint_dir, 
-                 do_flipping, 
+                 do_flipping,
+                 do_ccropping,
+                 do_rcropping,
                  skip
                 ):
         
@@ -53,6 +55,8 @@ class CycleGAN:
         self._dataset_name = dataset_name
         self._checkpoint_dir = checkpoint_dir
         self._do_flipping = do_flipping
+        self._do_ccropping = do_ccropping
+        self._do_rcropping = do_rcropping
         self._skip = skip
     
         ## Define the hyperparameters
@@ -240,7 +244,7 @@ class CycleGAN:
         # Need to be modified
         self.inputs = data_loader.load_data(
             self._dataset_name, self._size_before_crop,
-            True, self._do_flipping)
+            True, self._do_flipping, self._do_ccropping, self._do_rcropping)
 
         # Build the network
         self.model()
@@ -368,8 +372,7 @@ class CycleGAN:
 
         self.inputs = data_loader.load_data(
             self._dataset_name, self._size_before_crop,
-            False, self._do_flipping)
-
+            False, self._do_flipping, self._do_ccropping, self._do_rcropping)
         self.model()
         saver = tf.train.Saver()
         init = tf.global_variables_initializer()
