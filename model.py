@@ -64,6 +64,7 @@ class CycleGAN:
         self.lambda2 = lambda2
         self.beta1 = 0.5
         
+        ## This are the domains of X, Y
         self.fake_images_X = np.zeros(
             (self._pool_size, 1, utils.IMG_HEIGHT, utils.IMG_WIDTH,
              utils.IMG_CHANNELS)
@@ -75,6 +76,7 @@ class CycleGAN:
 
         
     def model(self):
+        ## These are single input images
         self.input_x = tf.placeholder(
             tf.float32, shape=[
                 1,
@@ -90,7 +92,7 @@ class CycleGAN:
                 utils.IMG_CHANNELS
             ], name="input_Y")
                        
-        ## Define a placeholder fed with fake x/fake y
+        ## These are generated fake images
         self.fake_pool_X = tf.placeholder(
             tf.float32, shape=[
                 None,
@@ -116,6 +118,8 @@ class CycleGAN:
         self.images_x = self.input_x
         self.images_y = self.input_y
         
+        ## Generator and Discriminator
+        ## See CycleGAN paper Page 3 (the left figure)
         self.G_X = generator.Generator("G_X", skip=self._skip)
         self.G_Y = generator.Generator("G_Y", skip=self._skip)
         self.D_X = discriminator.Discriminator('D_X')
@@ -123,40 +127,49 @@ class CycleGAN:
         
         with tf.variable_scope("Model") as scope:
 
+            ## will be used for discriminator loss
             self.prob_real_x_is_real = self.D_X(self.images_x)
             self.prob_real_y_is_real = self.D_Y(self.images_y)
         
             self.fake_images_y = self.G_X(self.images_x)
             self.fake_images_x = self.G_Y(self.images_y)
             
+            ## Make sure we can reuse D and G
             scope.reuse_variables()
             
+            ## will be used for generator loss
             self.prob_fake_x_is_real = self.D_X(self.fake_images_x)
             self.prob_fake_y_is_real = self.D_Y(self.fake_images_y)
 
+            ## Generator cycle images 
+            ## See CycleGAN paper Page 3 (the middle figure)
             self.cycle_images_y = self.G_X(self.fake_images_x)
             self.cycle_images_x = self.G_Y(self.fake_images_y)
             
             scope.reuse_variables()
 
+            ## will be used for discriminator loss
             self.prob_fake_pool_x_is_real = self.D_X(self.fake_pool_X)
             self.prob_fake_pool_y_is_real = self.D_Y(self.fake_pool_Y)
+            
         
-        
+    ## See CycleGAN paper 3.3 "Full Objective"
     def compute_losses(self):    
         
+        ## \lambda * L_cyc(G_X,G_Y)
         X_cycle_loss = self.lambda1 * loss.cycle_consistency_loss(self.input_x, self.cycle_images_x)
         Y_cycle_loss = self.lambda2 * loss.cycle_consistency_loss(self.input_y, self.cycle_images_y)
         
+        ## L_gan(G, D, X, Y)
         G_Y_gan_loss = loss.generator_loss(self.prob_fake_x_is_real)
         G_X_gan_loss = loss.generator_loss(self.prob_fake_y_is_real)
         
         G_X_loss = X_cycle_loss + Y_cycle_loss + G_X_gan_loss
         G_Y_loss = Y_cycle_loss + X_cycle_loss + G_Y_gan_loss
             
+        ## will be put into optimizer
         D_X_loss = loss.discriminator_loss(self.prob_real_x_is_real, self.prob_fake_pool_x_is_real)
         D_Y_loss = loss.discriminator_loss(self.prob_real_y_is_real, self.prob_fake_pool_y_is_real)
-        
         
         optimizer = tf.train.AdamOptimizer(self.learning_rate, self.beta1)
         
@@ -222,7 +235,7 @@ class CycleGAN:
                     )
                 v_html.write("<br>")
         
-     
+    ## random noise generator 
     def fake_image_pool(self, num_fakes, fake, fake_pool):
         if num_fakes < self._pool_size:
             fake_pool[num_fakes] = fake
