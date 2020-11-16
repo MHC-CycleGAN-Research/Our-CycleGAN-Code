@@ -36,7 +36,8 @@ class CycleGAN:
                  do_flipping,
                  do_ccropping,
                  do_rcropping,
-                 skip
+                 skip,
+                 is_segmented
                 ):
         
         self._pool_size = pool_size
@@ -58,6 +59,7 @@ class CycleGAN:
         self._do_ccropping = do_ccropping
         self._do_rcropping = do_rcropping
         self._skip = skip
+        self._is_segmented = is_segmented
     
         ## Define the hyperparameters
         self.lambda1 = lambda1
@@ -76,43 +78,30 @@ class CycleGAN:
 
         
     def model(self):
-        ## These are single input images
-        self.input_x = tf.placeholder(
-            tf.float32, shape=[
-                1,
-                utils.IMG_HEIGHT,
-                utils.IMG_WIDTH,
-                utils.IMG_CHANNELS
-            ], name="input_X")
-        self.input_y = tf.placeholder(
-            tf.float32, shape=[
-                1,
-                utils.IMG_HEIGHT,
-                utils.IMG_WIDTH,
-                utils.IMG_CHANNELS
-            ], name="input_Y")
+       # These are single input images
+       self.input_x = tf.placeholder(tf.float32, shape=[1, 
+            utils.IMG_HEIGHT, utils.IMG_WIDTH, utils.IMG_CHANNELS], name="input_X")
+
+        self.input_y = tf.placeholder(tf.float32, shape=[1, 
+            utils.IMG_HEIGHT, utils.IMG_WIDTH, utils.IMG_CHANNELS], name="input_Y")
+
+        if self._is_segmented is True:
+            self.seg_x = tf.placeholder(tf.float32, shape=[1, 
+            utils.IMG_HEIGHT, utils.IMG_WIDTH, 1], name="seg_X")
+
+            self.seg_y = tf.placeholder(tf.float32, shape=[1, 
+            utils.IMG_HEIGHT, utils.IMG_WIDTH, 1], name="seg_Y")
                        
-        ## These are generated fake images
-        self.fake_pool_X = tf.placeholder(
-            tf.float32, shape=[
-                None,
-                utils.IMG_HEIGHT,
-                utils.IMG_WIDTH,
-                utils.IMG_CHANNELS
-            ], name="fake_pool_X")
+        ## Define a placeholder fed with fake x/fake y
+        self.fake_pool_X = tf.placeholder(tf.float32, shape=[None, 
+            utils.IMG_HEIGHT, utils.IMG_WIDTH, utils.IMG_CHANNELS], name="fake_pool_X")
         
-        self.fake_pool_Y = tf.placeholder(
-            tf.float32, shape=[
-                None,
-                utils.IMG_HEIGHT,
-                utils.IMG_WIDTH,
-                utils.IMG_CHANNELS
-            ], name="fake_pool_Y")
+        self.fake_pool_Y = tf.placeholder(tf.float32, shape=[None, 
+            utils.IMG_HEIGHT, utils.IMG_WIDTH, utils.IMG_CHANNELS], name="fake_pool_Y")
         
+
         self.global_step = tf.Variable(1, name="global_step")
-
         self.num_fake_inputs = 0
-
         self.learning_rate = tf.placeholder(tf.float32, shape=[], name="lr")
 
         self.images_x = self.input_x
@@ -156,18 +145,21 @@ class CycleGAN:
     ## See CycleGAN paper 3.3 "Full Objective"
     def compute_losses(self):    
         
-        ## \lambda * L_cyc(G_X,G_Y)
+        #TODO: style and content loss using self.seg_x and self.seg_y
+        # L_cyc(G_X,G_Y): cycle consistency loss
         X_cycle_loss = self.lambda1 * loss.cycle_consistency_loss(self.input_x, self.cycle_images_x)
         Y_cycle_loss = self.lambda2 * loss.cycle_consistency_loss(self.input_y, self.cycle_images_y)
         
-        ## L_gan(G, D, X, Y)
+        # L_gan(G, D, X, Y): generative network loss:  
         G_Y_gan_loss = loss.generator_loss(self.prob_fake_x_is_real)
         G_X_gan_loss = loss.generator_loss(self.prob_fake_y_is_real)
         
+        # (Overall Generator Model Loss)
         G_X_loss = X_cycle_loss + Y_cycle_loss + G_X_gan_loss
         G_Y_loss = Y_cycle_loss + X_cycle_loss + G_Y_gan_loss
             
-        ## will be put into optimizer
+
+        # L_adv: adversarial loss (Overall Discriminator Model Loss)
         D_X_loss = loss.discriminator_loss(self.prob_real_x_is_real, self.prob_fake_pool_x_is_real)
         D_Y_loss = loss.discriminator_loss(self.prob_real_y_is_real, self.prob_fake_pool_y_is_real)
         
@@ -204,11 +196,13 @@ class CycleGAN:
         if not os.path.exists(self._images_dir):
             os.makedirs(self._images_dir)
 
-        names = ['inputX_', 'inputY_', 'fakeX_',
-                 'fakeY_', 'cycX_', 'cycY_']
+        
+        if self._is_segmented is True:
+            names = ['inputX_', 'inputY_', 'segX_', 'segY_', 'fakeX_', 'fakeY_', 'cycX_', 'cycY_']
+        else:
+            names = ['inputX_', 'inputY_', 'fakeX_', 'fakeY_', 'cycX_', 'cycY_']
 
-        with open(os.path.join(
-                self._output_dir, 'epoch_' + str(epoch) + '.html'), 'w') as v_html:
+        with open(os.path.join(self._output_dir, 'epoch_' + str(epoch) + '.html'), 'w') as v_html:
             for i in range(0, self._num_imgs_to_save):
                 print("Saving image {}/{}".format(i, self._num_imgs_to_save))
                 inputs = sess.run(self.inputs)
@@ -221,9 +215,12 @@ class CycleGAN:
                     self.input_x: inputs['images_i'],
                     self.input_y: inputs['images_j']
                 })
-
-                tensors = [inputs['images_i'], inputs['images_j'],
-                           fake_Y_temp, fake_X_temp, cyc_X_temp, cyc_Y_temp]
+                if self._is_segmented is True:
+                    tensors = [inputs['images_i'], inputs['images_j'],inputs['segs_i'], inputs['segs_j'],
+                               fake_Y_temp, fake_X_temp, cyc_X_temp, cyc_Y_temp]
+                else:
+                    tensors = [inputs['images_i'], inputs['images_j'],
+                               fake_Y_temp, fake_X_temp, cyc_X_temp, cyc_Y_temp]
 
                 for name, tensor in zip(names, tensors):
                     image_name = name + str(epoch) + "_" + str(i) + ".jpg"
@@ -256,8 +253,8 @@ class CycleGAN:
         # Load Dataset from the dataset folder
         # Need to be modified
         self.inputs = data_loader.load_data(
-            self._dataset_name, self._size_before_crop,
-            True, self._do_flipping, self._do_ccropping, self._do_rcropping)
+            self._dataset_name, self._size_before_crop, True, 
+            self._do_flipping, self._do_ccropping, self._do_rcropping, self._is_segmented)
 
         # Build the network
         self.model()
@@ -305,20 +302,22 @@ class CycleGAN:
                     print("Processing batch {}/{}".format(i, max_images))
 
                     inputs = sess.run(self.inputs)
+                    
+                    if self._is_segmented is True:
+                        G_feed_dict = { self.input_x: inputs['images_i'],
+                                        self.input_y: inputs['images_j'],
+                                        self.seg_x: inputs['segs_i'],
+                                        self.seg_y: inputs['segs_j'],
+                                        self.learning_rate: curr_lr}
+                    else:
+                        G_feed_dict = { self.input_x: inputs['images_i'],
+                                        self.input_y: inputs['images_j'],
+                                        self.learning_rate: curr_lr}
 
                     # Optimizing the G_X network
                     _, fake_Y_temp, summary_str = sess.run(
-                        [self.G_X_trainer,
-                         self.fake_images_y,
-                         self.G_X_loss_summ],
-                        feed_dict={
-                            self.input_x:
-                                inputs['images_i'],
-                            self.input_y:
-                                inputs['images_j'],
-                            self.learning_rate: curr_lr
-                        }
-                    )
+                        [self.G_X_trainer, self.fake_images_y, self.G_X_loss_summ], feed_dict=G_feed_dict)
+
                     writer.add_summary(summary_str, epoch * max_images + i)
 
                     fake_Y_temp1 = self.fake_image_pool(
@@ -328,10 +327,8 @@ class CycleGAN:
                     _, summary_str = sess.run(
                         [self.D_Y_trainer, self.D_Y_loss_summ],
                         feed_dict={
-                            self.input_x:
-                                inputs['images_i'],
-                            self.input_y:
-                                inputs['images_j'],
+                            self.input_x: inputs['images_i'],
+                            self.input_y: inputs['images_j'],
                             self.learning_rate: curr_lr,
                             self.fake_pool_Y: fake_Y_temp1
                         }
@@ -340,17 +337,8 @@ class CycleGAN:
 
                     # Optimizing the G_Y network
                     _, fake_X_temp, summary_str = sess.run(
-                        [self.G_Y_trainer,
-                         self.fake_images_x,
-                         self.G_Y_loss_summ],
-                        feed_dict={
-                            self.input_x:
-                                inputs['images_i'],
-                            self.input_y:
-                                inputs['images_j'],
-                            self.learning_rate: curr_lr
-                        }
-                    )
+                        [self.G_Y_trainer, self.fake_images_x, self.G_Y_loss_summ], feed_dict=G_feed_dict)
+
                     writer.add_summary(summary_str, epoch * max_images + i)
 
                     fake_X_temp1 = self.fake_image_pool(
@@ -360,10 +348,8 @@ class CycleGAN:
                     _, summary_str = sess.run(
                         [self.D_X_trainer, self.D_X_loss_summ],
                         feed_dict={
-                            self.input_x:
-                                inputs['images_i'],
-                            self.input_y:
-                                inputs['images_j'],
+                            self.input_x: inputs['images_i'],
+                            self.input_y: inputs['images_j'],
                             self.learning_rate: curr_lr,
                             self.fake_pool_X: fake_X_temp1
                         }
@@ -384,8 +370,8 @@ class CycleGAN:
         print("Testing the results")
 
         self.inputs = data_loader.load_data(
-            self._dataset_name, self._size_before_crop,
-            False, self._do_flipping, self._do_ccropping, self._do_rcropping)
+            self._dataset_name, self._size_before_crop, False, 
+            self._do_flipping, self._do_ccropping, self._do_rcropping, self._is_segmented)
         self.model()
         saver = tf.train.Saver()
         init = tf.global_variables_initializer()
