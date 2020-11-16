@@ -32,8 +32,12 @@ import click
               type=click.BOOL,
               default=False,
               help='Whether to skip a few nodes during training.')
+@click.option('--is_segmented',
+              type=click.BOOL,
+              default=True,
+              help='Whether segmentation masks are provided.')
 
-def main(to_train, log_dir, config_filename, checkpoint_dir, skip):
+def main(to_train, log_dir, config_filename, checkpoint_dir, skip, is_segmented):
     """
     :param to_train: Specify whether it is training or testing. 1: training; 2:
      resuming from latest checkpoint; 0: testing.
@@ -66,7 +70,8 @@ def main(to_train, log_dir, config_filename, checkpoint_dir, skip):
 
     cyclegan_model = model.CycleGAN(pool_size, lambda_a, lambda_b, log_dir,
                               to_restore, base_lr, max_step,
-                              dataset_name, checkpoint_dir, do_flipping, do_ccropping, do_rcropping, skip)
+                              dataset_name, checkpoint_dir, do_flipping, 
+                              do_ccropping, do_rcropping, skip, is_segmented)
 
     if to_train > 0:
         cyclegan_model.train()
