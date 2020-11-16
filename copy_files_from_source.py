@@ -1,6 +1,7 @@
 import shutil, os
 import csv
 import random
+import string
 
 image_path = './input/fake2real/testA'
 image_seg = './input/fake2real/testSegA'
@@ -49,5 +50,9 @@ def copy_files():
 
 
 if __name__ == '__main__':
-
-	copy_files()
+    result = raw_input("\n [WARNING]: This can be dangerous. \n Please press Y to confirm you want to update your dataset.\n ")
+    if result == "Y":
+        copy_files()
+        print("FILES COPIED.")
+    else:
+        print("GOODBYE!")

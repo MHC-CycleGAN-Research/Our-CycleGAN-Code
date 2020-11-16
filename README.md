@@ -17,3 +17,6 @@ https://drive.google.com/drive/folders/1nO7h8bEnPhuSS-EzQ7g2zBK6NIajmIpE?usp=sha
 
 ### Command to test the model:
 `python -m main --to_train=0 --checkpoint_dir=/path-to-checkpoint-file`
+
+### Optional: Command to load segmentation masks from source location:
+`python copy_files_from_source.py`
