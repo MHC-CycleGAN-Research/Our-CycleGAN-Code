@@ -79,7 +79,7 @@ class CycleGAN:
         
     def model(self):
        # These are single input images
-       self.input_x = tf.placeholder(tf.float32, shape=[1, 
+        self.input_x = tf.placeholder(tf.float32, shape=[1, 
             utils.IMG_HEIGHT, utils.IMG_WIDTH, utils.IMG_CHANNELS], name="input_X")
 
         self.input_y = tf.placeholder(tf.float32, shape=[1, 
