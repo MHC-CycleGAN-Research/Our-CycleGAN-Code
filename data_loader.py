@@ -103,6 +103,13 @@ def random_flip_left_right_image_and_seg(image, seg):
 
     return image, seg
 
+def apply_mask_to_image(image, seg):
+    # randomly crop the the image and the corresponding segmentation mask
+    seg_color = tf.image.grayscale_to_rgb(seg)
+    masked_image = tf.math.multiply(image, seg_color)
+
+    return masked_image
+
 def load_data(dataset_name, image_size_before_crop, do_shuffle=True, 
     do_flipping=False, do_ccropping=False, do_rcropping=False, is_segmented=False):
     """
@@ -158,16 +165,31 @@ def load_data(dataset_name, image_size_before_crop, do_shuffle=True,
             image_i = tf.random_crop(image_i, [utils.IMG_HEIGHT, utils.IMG_WIDTH, 3])
             image_j = tf.random_crop(image_j, [utils.IMG_HEIGHT, utils.IMG_WIDTH, 3])
 
+    if is_segmented is True and utils.MASK_IMG_NOW is True:
+        masked_image_i = apply_mask_to_image(image_i, seg_i)
+        masked_image_j = apply_mask_to_image(image_j, seg_j)
+        masked_image_i = tf.subtract(tf.div(masked_image_i, 127.5), 1)
+        masked_image_j = tf.subtract(tf.div(masked_image_j, 127.5), 1)
+
     image_i = tf.subtract(tf.div(image_i, 127.5), 1)
     image_j = tf.subtract(tf.div(image_j, 127.5), 1)
 
     # Batch
     if is_segmented is True:
-        if do_shuffle is True:
-            images_i, images_j, segs_i, segs_j = tf.train.shuffle_batch([image_i, image_j, seg_i, seg_j], 1, 5000, 100)
-        else:
-            images_i, images_j, segs_i, segs_j = tf.train.batch([image_i, image_j, seg_i, seg_j], 1)
-        inputs = { 'images_i': images_i, 'images_j': images_j, 'segs_i': segs_i, 'segs_j': segs_j }
+        if utils.MASK_IMG_NOW is True:
+            if do_shuffle is True:
+                images_i, images_j, segs_i, segs_j, masked_image_i, masked_image_j = tf.train.shuffle_batch(
+                    [image_i, image_j, seg_i, seg_j, masked_image_i, masked_image_j], 1, 5000, 100)
+            else:
+                images_i, images_j, segs_i, segs_j, masked_image_i, masked_image_j = tf.train.batch(
+                    [image_i, image_j, seg_i, seg_j, masked_image_i, masked_image_j], 1)
+            inputs = { 'images_i': images_i, 'images_j': images_j, 'segs_i': segs_i, 'segs_j': segs_j, 'masked_images_i': masked_image_i, 'masked_images_j': masked_image_j}
+        else: 
+            if do_shuffle is True:
+                images_i, images_j, segs_i, segs_j = tf.train.shuffle_batch([image_i, image_j, seg_i, seg_j], 1, 5000, 100)
+            else:
+                images_i, images_j, segs_i, segs_j = tf.train.batch([image_i, image_j, seg_i, seg_j], 1)
+            inputs = { 'images_i': images_i, 'images_j': images_j, 'segs_i': segs_i, 'segs_j': segs_j }
 
     else:
         if do_shuffle is True:

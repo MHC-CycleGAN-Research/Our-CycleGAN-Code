@@ -215,7 +215,10 @@ class CycleGAN:
 
         
         if self._is_segmented is True:
-            names = ['inputX_', 'inputY_', 'segX_', 'segY_', 'fakeX_', 'fakeY_', 'cycX_', 'cycY_']
+            if utils.MASK_IMG_NOW is True:
+                names = ['inputX_', 'inputY_', 'fakeX_', 'fakeY_', 'cycX_', 'cycY_', 'merged_Y', 'merged_X']
+            else:
+                names = ['inputX_', 'inputY_', 'fakeX_', 'fakeY_', 'cycX_', 'cycY_', 'segX_', 'segY_']
         else:
             names = ['inputX_', 'inputY_', 'fakeX_', 'fakeY_', 'cycX_', 'cycY_']
 
@@ -223,18 +226,36 @@ class CycleGAN:
             for i in range(0, self._num_imgs_to_save):
                 print("Saving image {}/{}".format(i, self._num_imgs_to_save))
                 inputs = sess.run(self.inputs)
-                fake_X_temp, fake_Y_temp, cyc_X_temp, cyc_Y_temp = sess.run([
-                    self.fake_images_x,
-                    self.fake_images_y,
-                    self.cycle_images_x,
-                    self.cycle_images_y], 
-                    feed_dict={
-                    self.input_x: inputs['images_i'],
-                    self.input_y: inputs['images_j']
-                })
+
+                if utils.MASK_IMG_NOW is True and self._is_segmented is True:
+                    fake_X_temp, fake_Y_temp, cyc_X_temp, cyc_Y_temp = sess.run([
+                        self.fake_images_x,
+                        self.fake_images_y,
+                        self.cycle_images_x,
+                        self.cycle_images_y], 
+                        feed_dict={
+                        self.input_x: inputs['masked_images_i'],
+                        self.input_y: inputs['masked_images_j']
+                    })
+                else:
+                    fake_X_temp, fake_Y_temp, cyc_X_temp, cyc_Y_temp = sess.run([
+                        self.fake_images_x,
+                        self.fake_images_y,
+                        self.cycle_images_x,
+                        self.cycle_images_y], 
+                        feed_dict={
+                        self.input_x: inputs['images_i'],
+                        self.input_y: inputs['images_j']
+                    })
                 if self._is_segmented is True:
-                    tensors = [inputs['images_i'], inputs['images_j'],inputs['segs_i'], inputs['segs_j'],
-                               fake_Y_temp, fake_X_temp, cyc_X_temp, cyc_Y_temp]
+                    if utils.MASK_IMG_NOW is True:
+                        tensors = [inputs['masked_images_i'], inputs['masked_images_j'], 
+                                    fake_Y_temp, fake_X_temp, cyc_X_temp, cyc_Y_temp, 
+                                    fake_Y_temp * inputs['segs_i'] + inputs['images_i'] * (1-inputs['segs_i']), 
+                                    fake_X_temp * inputs['segs_j'] + inputs['images_j'] * (1-inputs['segs_j'])]
+                    else:
+                        tensors = [inputs['images_i'], inputs['images_j'], fake_Y_temp, fake_X_temp, 
+                                   cyc_X_temp, cyc_Y_temp, inputs['segs_i'], inputs['segs_j']]
                 else:
                     tensors = [inputs['images_i'], inputs['images_j'],
                                fake_Y_temp, fake_X_temp, cyc_X_temp, cyc_Y_temp]
@@ -321,11 +342,18 @@ class CycleGAN:
                     inputs = sess.run(self.inputs)
                     
                     if self._is_segmented is True:
-                        G_feed_dict = { self.input_x: inputs['images_i'],
-                                        self.input_y: inputs['images_j'],
-                                        self.seg_x: inputs['segs_i'],
-                                        self.seg_y: inputs['segs_j'],
-                                        self.learning_rate: curr_lr}
+                        if utils.MASK_IMG_NOW is True:
+                            G_feed_dict = { self.input_x: inputs['masked_images_i'],
+                                            self.input_y: inputs['masked_images_j'],
+                                            self.seg_x: inputs['segs_i'],
+                                            self.seg_y: inputs['segs_j'],
+                                            self.learning_rate: curr_lr}
+                        else:
+                            G_feed_dict = { self.input_x: inputs['images_i'],
+                                            self.input_y: inputs['images_j'],
+                                            self.seg_x: inputs['segs_i'],
+                                            self.seg_y: inputs['segs_j'],
+                                            self.learning_rate: curr_lr}
                     else:
                         G_feed_dict = { self.input_x: inputs['images_i'],
                                         self.input_y: inputs['images_j'],
@@ -341,15 +369,26 @@ class CycleGAN:
                         self.num_fake_inputs, fake_Y_temp, self.fake_images_Y)
 
                     # Optimizing the D_Y network
-                    _, summary_str = sess.run(
-                        [self.D_Y_trainer, self.D_Y_loss_summ],
-                        feed_dict={
-                            self.input_x: inputs['images_i'],
-                            self.input_y: inputs['images_j'],
-                            self.learning_rate: curr_lr,
-                            self.fake_pool_Y: fake_Y_temp1
-                        }
-                    )
+                    if self._is_segmented is True and utils.MASK_IMG_NOW is True:
+                        _, summary_str = sess.run(
+                            [self.D_Y_trainer, self.D_Y_loss_summ],
+                            feed_dict={
+                                self.input_x: inputs['masked_images_i'],
+                                self.input_y: inputs['masked_images_j'],
+                                self.learning_rate: curr_lr,
+                                self.fake_pool_Y: fake_Y_temp1
+                            }
+                        )
+                    else:
+                        _, summary_str = sess.run(
+                            [self.D_Y_trainer, self.D_Y_loss_summ],
+                            feed_dict={
+                                self.input_x: inputs['images_i'],
+                                self.input_y: inputs['images_j'],
+                                self.learning_rate: curr_lr,
+                                self.fake_pool_Y: fake_Y_temp1
+                            }
+                        )
                     writer.add_summary(summary_str, epoch * max_images + i)
 
                     # Optimizing the G_Y network
@@ -362,15 +401,26 @@ class CycleGAN:
                         self.num_fake_inputs, fake_X_temp, self.fake_images_X)
 
                     # Optimizing the D_X network
-                    _, summary_str = sess.run(
-                        [self.D_X_trainer, self.D_X_loss_summ],
-                        feed_dict={
-                            self.input_x: inputs['images_i'],
-                            self.input_y: inputs['images_j'],
-                            self.learning_rate: curr_lr,
-                            self.fake_pool_X: fake_X_temp1
-                        }
-                    )
+                    if self._is_segmented is True and utils.MASK_IMG_NOW is True:
+                        _, summary_str = sess.run(
+                            [self.D_X_trainer, self.D_X_loss_summ],
+                            feed_dict={
+                                self.input_x: inputs['masked_images_i'],
+                                self.input_y: inputs['masked_images_j'],
+                                self.learning_rate: curr_lr,
+                                self.fake_pool_X: fake_X_temp1
+                            }
+                        )
+                    else:
+                        _, summary_str = sess.run(
+                            [self.D_X_trainer, self.D_X_loss_summ],
+                            feed_dict={
+                                self.input_x: inputs['images_i'],
+                                self.input_y: inputs['images_j'],
+                                self.learning_rate: curr_lr,
+                                self.fake_pool_X: fake_X_temp1
+                            }
+                        )
                     writer.add_summary(summary_str, epoch * max_images + i)
 
                     writer.flush()

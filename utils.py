@@ -24,6 +24,8 @@ POOL_SIZE = 50
 ngf = 32
 ndf = 64
 
+MASK_IMG_NOW = True
+
 
 def build_resnet_block(inputres, dim, name="resnet", padding="REFLECT"):
     """build a single block of resnet.
