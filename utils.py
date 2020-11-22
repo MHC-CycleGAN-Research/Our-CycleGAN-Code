@@ -127,3 +127,10 @@ def instance_norm(x):
 
         return out
 
+
+def tf_count(t, val):
+
+    elements_equal_to_value = tf.equal(t, val)
+    as_ints = tf.cast(elements_equal_to_value, tf.int32)
+    count = tf.math.maximum(tf.reduce_sum(as_ints), 1)
+    return count

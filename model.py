@@ -65,7 +65,8 @@ class CycleGAN:
         self.lambda1 = lambda1
         self.lambda2 = lambda2
         self.beta1 = 0.5
-        
+        self.dilate_k = 3
+
         ## This are the domains of X, Y
         self.fake_images_X = np.zeros(
             (self._pool_size, 1, utils.IMG_HEIGHT, utils.IMG_WIDTH,
@@ -144,8 +145,11 @@ class CycleGAN:
         
     ## See CycleGAN paper 3.3 "Full Objective"
     def compute_losses(self):    
-        
-        #TODO: style and content loss using self.seg_x and self.seg_y
+
+
+        dilated_seg_x = tf.nn.max_pool2d(self.seg_x, ksize=(self.dilate_k, self.dilate_k), strides=1, padding= 'SAME')
+        dilated_seg_y = tf.nn.max_pool2d(self.seg_y, ksize=(self.dilate_k, self.dilate_k), strides=1, padding= 'SAME')
+
         # L_cyc(G_X,G_Y): cycle consistency loss
         X_cycle_loss = self.lambda1 * loss.cycle_consistency_loss(self.input_x, self.cycle_images_x)
         Y_cycle_loss = self.lambda2 * loss.cycle_consistency_loss(self.input_y, self.cycle_images_y)
@@ -154,9 +158,22 @@ class CycleGAN:
         G_Y_gan_loss = loss.generator_loss(self.prob_fake_x_is_real)
         G_X_gan_loss = loss.generator_loss(self.prob_fake_y_is_real)
         
+        # L_con(G_X, G_Y, X, Y, seg_X, seg_Y): background content loss
+        # L_sty(G_X, G_Y, X, Y, seg_X, seg_Y): foreground style loss
+        G_X_content_loss = tf.zeros_like(G_X_gan_loss)
+        G_Y_content_loss = tf.zeros_like(G_Y_gan_loss)
+        G_X_style_loss = tf.zeros_like(G_X_gan_loss)
+        G_Y_style_loss = tf.zeros_like(G_Y_gan_loss)
+
+        if self._is_segmented:
+            G_X_content_loss = loss.background_content_loss(self.input_x, self.fake_images_y, self.seg_x)
+            G_Y_content_loss = loss.background_content_loss(self.input_y, self.fake_images_x, self.seg_y)
+            G_X_style_loss = loss.foreground_style_loss(self.fake_images_y, self.input_y, self.seg_x, self.seg_y)
+            G_Y_style_loss = loss.foreground_style_loss(self.fake_images_x, self.input_x, self.seg_y, self.seg_x)
+
         # (Overall Generator Model Loss)
-        G_X_loss = X_cycle_loss + Y_cycle_loss + G_X_gan_loss
-        G_Y_loss = Y_cycle_loss + X_cycle_loss + G_Y_gan_loss
+        G_X_loss = X_cycle_loss + Y_cycle_loss + G_X_gan_loss + G_X_content_loss + G_X_style_loss
+        G_Y_loss = Y_cycle_loss + X_cycle_loss + G_Y_gan_loss + G_Y_content_loss + G_Y_style_loss
             
 
         # L_adv: adversarial loss (Overall Discriminator Model Loss)
