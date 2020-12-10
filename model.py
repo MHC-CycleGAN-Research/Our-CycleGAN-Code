@@ -154,7 +154,7 @@ class CycleGAN:
         X_cycle_loss = self.lambda1 * loss.cycle_consistency_loss(self.input_x, self.cycle_images_x)
         Y_cycle_loss = self.lambda2 * loss.cycle_consistency_loss(self.input_y, self.cycle_images_y)
         
-        # L_gan(G, D, X, Y): generative network loss:  
+        # L_gan(G, D, X, Y): generative network loss  
         G_Y_gan_loss = loss.generator_loss(self.prob_fake_x_is_real)
         G_X_gan_loss = loss.generator_loss(self.prob_fake_y_is_real)
         
@@ -170,6 +170,8 @@ class CycleGAN:
             G_Y_content_loss = loss.background_content_loss(self.input_y, self.fake_images_x, self.seg_y)
             G_X_style_loss = loss.foreground_style_loss(self.fake_images_y, self.input_y, self.seg_x, self.seg_y)
             G_Y_style_loss = loss.foreground_style_loss(self.fake_images_x, self.input_x, self.seg_y, self.seg_x)
+            #G_X_style_loss = style.style_transfer_loss(self.fake_images_y, self.input_y, dilated_seg_x, dilated_seg_y)
+            #G_Y_style_loss = style.style_transfer_loss(self.fake_images_x, self.input_x, dilated_seg_y, dilated_seg_x)
 
         # (Overall Generator Model Loss)
         G_X_loss = X_cycle_loss + Y_cycle_loss + G_X_gan_loss + G_X_content_loss + G_X_style_loss

@@ -24,6 +24,16 @@ POOL_SIZE = 50
 ngf = 32
 ndf = 64
 
+# Hyperparameters for style loss
+STYLE_WEIGHT = 1e-2
+STYLE_LAYERS   = ['block1_conv1',  # Style layer we are interested in
+                  'block2_conv1',
+                  'block3_conv1', 
+                  'block4_conv1', 
+                  'block5_conv1']
+CONTENT_LAYERS = ['block5_conv2']  # Content layer where will pull our feature maps
+N_STYLE_LAYERS = len(STYLE_LAYERS)
+
 
 def build_resnet_block(inputres, dim, name="resnet", padding="REFLECT"):
     """build a single block of resnet.
@@ -134,3 +144,12 @@ def tf_count(t, val):
     as_ints = tf.cast(elements_equal_to_value, tf.int32)
     count = tf.math.maximum(tf.reduce_sum(as_ints), 1)
     return count
+
+
+def gram_matrix(input_tensor):
+
+    channels = int(input_tensor.shape[-1])
+    a = tf.reshape(input_tensor, [-1, channels])
+    n = tf.shape(a)[0]
+    gram = tf.matmul(a, a, transpose_a=True)
+    return gram / tf.cast(n, tf.float32)

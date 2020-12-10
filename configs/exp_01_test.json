@@ -1,8 +1,13 @@
 {
   "description": "Testing with trained model.",
-  "network_version": "tensorflow",
+  "network_version": "pytorch",
   "dataset_name": "fake2real_test",
+  "pool_size": 200,
+  "base_lr":0.0002,
+  "max_step": 200,
   "do_flipping": 0,
   "do_ccropping": 1,
-  "do_rcropping": 0
+  "do_rcropping": 0,
+  "_LAMBDA_A": 10,
+  "_LAMBDA_B": 10
 }

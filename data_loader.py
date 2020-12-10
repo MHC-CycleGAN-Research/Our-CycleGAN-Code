@@ -157,7 +157,12 @@ def load_data(dataset_name, image_size_before_crop, do_shuffle=True,
         else:
             image_i = tf.random_crop(image_i, [utils.IMG_HEIGHT, utils.IMG_WIDTH, 3])
             image_j = tf.random_crop(image_j, [utils.IMG_HEIGHT, utils.IMG_WIDTH, 3])
-
+    else:
+        image_i = tf.image.resize_images(image_i, [utils.IMG_HEIGHT, utils.IMG_WIDTH])
+        image_j = tf.image.resize_images(image_j, [utils.IMG_HEIGHT, utils.IMG_WIDTH])
+        if is_segmented is True:
+            seg_i = tf.image.resize_images(seg_i, [utils.IMG_HEIGHT, utils.IMG_WIDTH])
+            seg_j = tf.image.resize_images(seg_j, [utils.IMG_HEIGHT, utils.IMG_WIDTH])
     image_i = tf.subtract(tf.div(image_i, 127.5), 1)
     image_j = tf.subtract(tf.div(image_j, 127.5), 1)
 
