@@ -1,5 +1,5 @@
 ### Here is the dataset we use:
-https://drive.google.com/drive/folders/1nO7h8bEnPhuSS-EzQ7g2zBK6NIajmIpE?usp=sharing
+https://digital.lib.washington.edu/researchworks/handle/1773/45396
 
 ### System setup:
 `~/anaconda3/envs/tf-gpu/bin/pip install imageio`
